@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { handleError, showErrorAlert } from '../errorHandler.js';
   import { API } from '../constants.js';
+  import { confirmDialog } from '../confirm.svelte.js';
 
   let {
     folderName,
@@ -92,7 +93,7 @@
     if (selectedImages.size === 0) return;
 
     const count = selectedImages.size;
-    if (!confirm(`Delete ${count} selected image${count > 1 ? 's' : ''}? This cannot be undone.`)) {
+    if (!(await confirmDialog(`Delete ${count} selected image${count > 1 ? 's' : ''}? This cannot be undone.`, { confirmLabel: 'Delete', danger: true }))) {
       return;
     }
 
@@ -125,7 +126,7 @@
     const message = videoExists
       ? 'Compile video from these images? This will overwrite the previous video.'
       : 'Compile video from these images?';
-    if (!confirm(message)) {
+    if (!(await confirmDialog(message, { confirmLabel: 'Compile', danger: videoExists }))) {
       return;
     }
 

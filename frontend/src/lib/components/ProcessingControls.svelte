@@ -2,6 +2,7 @@
   import { sanitizeFolderName, formatSize } from '../utils.js';
   import { JOB_STATUS, API } from '../constants.js';
   import { handleError } from '../errorHandler.js';
+  import { confirmDialog } from '../confirm.svelte.js';
 
   let { personId, personName, albums = [], jobStatus, outputFolders = [], onupdate } = $props();
 
@@ -102,12 +103,12 @@
     }
   }
 
-  function handleStartClick() {
+  async function handleStartClick() {
     if (existingFolder) {
       const folder = existingFolder;
-      const message = `"${folder.name}" already has ${folder.image_count} images (${formatSize(folder.size_bytes)})${folder.has_video ? ' and a compiled video' : ''}.\n\nAll existing content in ${folder.name} will be permanently deleted.\n\nClick OK to continue.`;
+      const message = `"${folder.name}" already has ${folder.image_count} images (${formatSize(folder.size_bytes)})${folder.has_video ? ' and a compiled video' : ''}.\n\nAll existing content in ${folder.name} will be permanently deleted before processing starts.`;
 
-      if (confirm(message)) {
+      if (await confirmDialog(message, { confirmLabel: 'Delete and start', danger: true })) {
         startProcessing();
       }
     } else {

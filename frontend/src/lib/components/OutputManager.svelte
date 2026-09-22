@@ -2,13 +2,14 @@
   import { formatSize } from '../utils.js';
   import { showErrorAlert } from '../errorHandler.js';
   import { API } from '../constants.js';
+  import { confirmDialog } from '../confirm.svelte.js';
 
   let { disabled = false, folders = [], onOpenGallery, onFolderDeleted } = $props();
 
   let deleting = $state(null);
 
   async function deleteFolder(name) {
-    if (!confirm(`Delete output folder "${name}"? This cannot be undone.`)) {
+    if (!(await confirmDialog(`Delete output folder "${name}"? This cannot be undone.`, { confirmLabel: 'Delete', danger: true }))) {
       return;
     }
 
@@ -28,7 +29,7 @@
   }
 
   async function deleteAll() {
-    if (!confirm('Delete ALL output folders? This cannot be undone.')) {
+    if (!(await confirmDialog('Delete ALL output folders? This cannot be undone.', { confirmLabel: 'Delete all', danger: true }))) {
       return;
     }
 
