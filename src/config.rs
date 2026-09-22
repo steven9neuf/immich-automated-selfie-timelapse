@@ -539,6 +539,12 @@ pub struct ProcessingConfig {
     #[serde(default = "default_true")]
     pub use_preview: bool,
 
+    /// Whether to also use videos in which the person was recognized.
+    /// Immich detects faces on a video's preview frame, so that frame is used
+    /// as the image (the original file is never downloaded for videos).
+    #[serde(default = "default_true")]
+    pub include_videos: bool,
+
     /// Face resolution validation settings.
     #[serde(default)]
     pub face_resolution: FaceResolutionConfig,
@@ -585,6 +591,7 @@ impl Default for ProcessingConfig {
         Self {
             max_workers: 1,
             use_preview: true,
+            include_videos: true,
             face_resolution: FaceResolutionConfig::default(),
             crop: CropConfig::default(),
             blur: BlurConfig::default(),

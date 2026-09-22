@@ -108,8 +108,9 @@ pub async fn process_single_asset(
         };
     }
 
-    // Download image (preview or original based on config)
-    let download_result = if config.processing.use_preview {
+    // Download image (preview or original based on config).
+    // A video's original is the video file itself: always use its preview frame.
+    let download_result = if config.processing.use_preview || asset.is_video() {
         client.download_asset_preview(asset_id).await
     } else {
         client.download_asset(asset_id).await

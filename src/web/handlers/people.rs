@@ -121,7 +121,7 @@ pub async fn get_person_asset_count(
 
     // Fetch assets for this person (optionally filtered by albums)
     let assets = client
-        .get_assets_with_person(&person_id, None, None, &album_ids)
+        .get_assets_with_person(&person_id, None, None, &album_ids, config.processing.include_videos)
         .await
         .map_err(|e| {
             (

@@ -42,6 +42,7 @@
         processing: {
           max_workers: Number(config.processing.max_workers),
           use_preview: config.processing.use_preview,
+          include_videos: config.processing.include_videos,
           face_resolution: {
             enabled: config.processing.face_resolution.enabled,
             min_size: Number(config.processing.face_resolution.min_size),
@@ -446,6 +447,14 @@
                     <span class="setting-hint">Download Immich 1440p previews instead of originals (much faster)</span>
                   </label>
                   <input id="use-preview" type="checkbox" bind:checked={config.processing.use_preview} />
+                </div>
+
+                <div class="setting-row checkbox-row">
+                  <label for="include-videos">
+                    <span class="setting-label">Include Videos</span>
+                    <span class="setting-hint">Also use videos, via the preview frame Immich ran face detection on</span>
+                  </label>
+                  <input id="include-videos" type="checkbox" bind:checked={config.processing.include_videos} />
                 </div>
               </div>
 

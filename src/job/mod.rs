@@ -248,6 +248,7 @@ async fn run_job_inner(
             params.date_from.as_deref(),
             params.date_to.as_deref(),
             &params.album_ids,
+            config.processing.include_videos,
         )
         .await?;
 

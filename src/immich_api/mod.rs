@@ -49,6 +49,15 @@ pub struct Asset {
     pub original_file_name: Option<String>,
     pub file_created_at: Option<String>,
     pub local_date_time: Option<String>,
+    /// "IMAGE" or "VIDEO".
+    #[serde(rename = "type")]
+    pub asset_type: Option<String>,
+}
+
+impl Asset {
+    pub fn is_video(&self) -> bool {
+        self.asset_type.as_deref() == Some("VIDEO")
+    }
 }
 
 /// Face data from Immich.
@@ -183,13 +192,34 @@ impl ImmichClient {
     /// Search for assets containing a specific person, optionally filtered by albums.
     ///
     /// When multiple albums are provided, fetches each album separately and merges
-    /// the results by asset ID.
+    /// the results by asset ID. Videos are included when `include_videos` is set.
     pub async fn get_assets_with_person(
         &self,
         person_id: &str,
         taken_after: Option<&str>,
         taken_before: Option<&str>,
         album_ids: &[String],
+        include_videos: bool,
+    ) -> Result<Vec<Asset>> {
+        let mut assets = self
+            .get_assets_of_type(person_id, taken_after, taken_before, album_ids, "IMAGE")
+            .await?;
+        if include_videos {
+            assets.extend(
+                self.get_assets_of_type(person_id, taken_after, taken_before, album_ids, "VIDEO")
+                    .await?,
+            );
+        }
+        Ok(assets)
+    }
+
+    async fn get_assets_of_type(
+        &self,
+        person_id: &str,
+        taken_after: Option<&str>,
+        taken_before: Option<&str>,
+        album_ids: &[String],
+        asset_type: &str,
     ) -> Result<Vec<Asset>> {
         // Immich requires full ISO 8601 datetimes, but callers pass plain
         // `YYYY-MM-DD` dates (e.g. from an HTML date input), so widen them
@@ -202,7 +232,7 @@ impl ImmichClient {
         if album_ids.len() <= 1 {
             // 0 or 1 album: single request
             let album_id = album_ids.first().map(|s| s.as_str());
-            self.search_person_assets(person_id, taken_after, taken_before, album_id)
+            self.search_person_assets(person_id, taken_after, taken_before, album_id, asset_type)
                 .await
         } else {
             // Multiple albums: fetch per album and merge by asset ID
@@ -217,6 +247,7 @@ impl ImmichClient {
                         taken_after,
                         taken_before,
                         Some(album_id.as_str()),
+                        asset_type,
                     )
                     .await?;
                 for asset in assets {
@@ -243,6 +274,7 @@ impl ImmichClient {
         taken_after: Option<&str>,
         taken_before: Option<&str>,
         album_id: Option<&str>,
+        asset_type: &str,
     ) -> Result<Vec<Asset>> {
         let mut all_assets = Vec::new();
         let mut page = 1u32;
@@ -253,7 +285,7 @@ impl ImmichClient {
                 album_ids: album_id.map(|id| vec![id.to_string()]),
                 taken_after: taken_after.map(|s| s.to_string()),
                 taken_before: taken_before.map(|s| s.to_string()),
-                asset_type: "IMAGE".to_string(),
+                asset_type: asset_type.to_string(),
                 page,
                 size: 100,
             };
@@ -602,7 +634,7 @@ mod tests {
         );
 
         let result = client
-            .get_assets_with_person(&person.id, None, None, &[])
+            .get_assets_with_person(&person.id, None, None, &[], true)
             .await;
 
         match &result {
