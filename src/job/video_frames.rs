@@ -614,8 +614,9 @@ mod tests {
 
     #[test]
     fn test_select_best_prefers_sharp_frontal_frames() {
+        // Scores: 0.4 (blurrier), 1.0, 0.5 (head turned by 45 degrees).
         let frames = [
-            frame(0.0, 50.0, 0.0),
+            frame(0.0, 40.0, 0.0),
             frame(5.0, 100.0, 0.0),
             frame(10.0, 100.0, 45.0),
         ];
