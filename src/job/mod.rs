@@ -7,6 +7,7 @@
 //! 4. Compiling processed images into a timelapse video
 
 mod processing;
+mod video_frames;
 
 use crate::config::{TimeIntervalConfig, TimeRange};
 use crate::error::{Error, Result};
@@ -248,6 +249,7 @@ async fn run_job_inner(
             params.date_from.as_deref(),
             params.date_to.as_deref(),
             &params.album_ids,
+            config.processing.include_videos,
         )
         .await?;
 

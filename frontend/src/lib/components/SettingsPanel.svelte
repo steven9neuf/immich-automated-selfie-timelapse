@@ -42,6 +42,7 @@
         processing: {
           max_workers: Number(config.processing.max_workers),
           use_preview: config.processing.use_preview,
+          include_videos: config.processing.include_videos,
           face_resolution: {
             enabled: config.processing.face_resolution.enabled,
             min_size: Number(config.processing.face_resolution.min_size),
@@ -81,6 +82,14 @@
             year: config.processing.timestamp.year,
             month: config.processing.timestamp.month,
             day: config.processing.timestamp.day,
+          },
+          video_frames: {
+            enabled: config.processing.video_frames.enabled,
+            interval_secs: Number(config.processing.video_frames.interval_secs),
+            max_candidates: Number(config.processing.video_frames.max_candidates),
+            max_frames_per_video: Number(config.processing.video_frames.max_frames_per_video),
+            match_threshold: Number(config.processing.video_frames.match_threshold),
+            use_original: config.processing.video_frames.use_original,
           },
           time_interval: {
             enabled: config.processing.time_interval.enabled,
@@ -447,7 +456,112 @@
                   </label>
                   <input id="use-preview" type="checkbox" bind:checked={config.processing.use_preview} />
                 </div>
+
+                <div class="setting-row checkbox-row">
+                  <label for="include-videos">
+                    <span class="setting-label">Include Videos</span>
+                    <span class="setting-hint">Also use videos, via the preview frame Immich ran face detection on</span>
+                  </label>
+                  <input id="include-videos" type="checkbox" bind:checked={config.processing.include_videos} />
+                </div>
               </div>
+
+              <!-- Video Frames Section -->
+              {#if config.processing.include_videos}
+              <div class="setting-section">
+                <div class="section-header">
+                  <span class="section-title">Video Frames</span>
+                  <input
+                    type="checkbox"
+                    bind:checked={config.processing.video_frames.enabled}
+                  />
+                </div>
+
+                {#if config.processing.video_frames.enabled}
+                  <div class="sub-settings-group">
+                    <div class="setting-row">
+                      <label for="vf-interval">
+                        <span class="setting-label">Sampling Interval</span>
+                        <span class="setting-hint">Seconds between checked frames (lower = finer, slower)</span>
+                      </label>
+                      <div class="setting-control">
+                        <input
+                          id="vf-interval"
+                          type="range"
+                          bind:value={config.processing.video_frames.interval_secs}
+                          min="0.25"
+                          max="10"
+                          step="0.25"
+                        />
+                        <span class="value">{Number(config.processing.video_frames.interval_secs).toFixed(2)}s</span>
+                      </div>
+                    </div>
+
+                    <div class="setting-row">
+                      <label for="vf-candidates">
+                        <span class="setting-label">Max Checked Frames</span>
+                        <span class="setting-hint">Per video; the interval widens on long videos</span>
+                      </label>
+                      <div class="setting-control">
+                        <input
+                          id="vf-candidates"
+                          type="range"
+                          bind:value={config.processing.video_frames.max_candidates}
+                          min="5"
+                          max="300"
+                          step="5"
+                        />
+                        <span class="value">{config.processing.video_frames.max_candidates}</span>
+                      </div>
+                    </div>
+
+                    <div class="setting-row">
+                      <label for="vf-keep">
+                        <span class="setting-label">Frames Kept per Video</span>
+                        <span class="setting-hint">Best frames according to the filters, spread over the video</span>
+                      </label>
+                      <div class="setting-control">
+                        <input
+                          id="vf-keep"
+                          type="range"
+                          bind:value={config.processing.video_frames.max_frames_per_video}
+                          min="1"
+                          max="20"
+                          step="1"
+                        />
+                        <span class="value">{config.processing.video_frames.max_frames_per_video}</span>
+                      </div>
+                    </div>
+
+                    <div class="setting-row">
+                      <label for="vf-threshold">
+                        <span class="setting-label">Match Threshold</span>
+                        <span class="setting-hint">Face distance to the person (lower = stricter)</span>
+                      </label>
+                      <div class="setting-control">
+                        <input
+                          id="vf-threshold"
+                          type="range"
+                          bind:value={config.processing.video_frames.match_threshold}
+                          min="0.3"
+                          max="0.7"
+                          step="0.01"
+                        />
+                        <span class="value">{Number(config.processing.video_frames.match_threshold).toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div class="setting-row checkbox-row">
+                      <label for="vf-original">
+                        <span class="setting-label">Use Original Videos</span>
+                        <span class="setting-hint">Full resolution, but much larger downloads than Immich's transcoded version</span>
+                      </label>
+                      <input id="vf-original" type="checkbox" bind:checked={config.processing.video_frames.use_original} />
+                    </div>
+                  </div>
+                {/if}
+              </div>
+              {/if}
 
               <!-- Time Interval Section -->
               <div class="setting-section">

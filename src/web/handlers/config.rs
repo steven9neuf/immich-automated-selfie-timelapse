@@ -3,7 +3,7 @@
 use crate::config::{
     AlignmentConfig, BlurConfig, BrightnessConfig, CropConfig, EyeFilterConfig,
     FaceResolutionConfig, HeadPoseConfig, OutputConfig, ProcessingConfig, TimeIntervalConfig,
-    TimestampConfig, VideoConfig, CONFIG_PATH,
+    TimestampConfig, VideoConfig, VideoFramesConfig, CONFIG_PATH,
 };
 use crate::web::state::AppState;
 use axum::{extract::State, http::StatusCode, response::Json};
@@ -48,6 +48,7 @@ pub struct ConfigUpdateRequest {
 pub struct ProcessingConfigUpdate {
     pub max_workers: Option<usize>,
     pub use_preview: Option<bool>,
+    pub include_videos: Option<bool>,
     pub face_resolution: Option<FaceResolutionConfig>,
     pub crop: Option<CropConfig>,
     pub blur: Option<BlurConfig>,
@@ -58,6 +59,7 @@ pub struct ProcessingConfigUpdate {
     pub alignment: Option<AlignmentConfig>,
     pub timestamp: Option<TimestampConfig>,
     pub time_interval: Option<TimeIntervalConfig>,
+    pub video_frames: Option<VideoFramesConfig>,
 }
 
 /// Video configuration update fields.
@@ -210,6 +212,11 @@ fn validate_processing_config(proc: &ProcessingConfigUpdate) -> Result<(), Valid
         }
     }
 
+    if let Some(ref vf) = proc.video_frames {
+        vf.validate()
+            .map_err(|e| ValidationError::new("processing.video_frames", e.to_string()))?;
+    }
+
     Ok(())
 }
 
@@ -282,6 +289,9 @@ pub async fn update_config(
             if let Some(v) = proc.use_preview {
                 config.processing.use_preview = v;
             }
+            if let Some(v) = proc.include_videos {
+                config.processing.include_videos = v;
+            }
             if let Some(v) = proc.face_resolution {
                 config.processing.face_resolution = v;
             }
@@ -311,6 +321,9 @@ pub async fn update_config(
             }
             if let Some(v) = proc.time_interval {
                 config.processing.time_interval = v;
+            }
+            if let Some(v) = proc.video_frames {
+                config.processing.video_frames = v;
             }
         }
 

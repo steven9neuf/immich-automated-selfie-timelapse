@@ -108,8 +108,25 @@ pub async fn process_single_asset(
         };
     }
 
-    // Download image (preview or original based on config)
-    let download_result = if config.processing.use_preview {
+    if asset.is_video() && config.processing.video_frames.enabled {
+        return super::video_frames::process_video_asset(
+            client,
+            config,
+            asset,
+            face_data,
+            &timestamp,
+            output_dirs,
+            cancel_token,
+            skip_stats,
+            pipeline,
+            time_interval,
+        )
+        .await;
+    }
+
+    // Download image (preview or original based on config).
+    // A video's original is the video file itself: always use its preview frame.
+    let download_result = if config.processing.use_preview || asset.is_video() {
         client.download_asset_preview(asset_id).await
     } else {
         client.download_asset(asset_id).await
@@ -159,51 +176,8 @@ pub async fn process_single_asset(
                 }
             }
 
-            // Sanitize timestamp for filename
-            let safe_timestamp: String = timestamp
-                .chars()
-                .map(|c| {
-                    if c.is_alphanumeric() || c == '-' || c == '_' {
-                        c
-                    } else {
-                        '_'
-                    }
-                })
-                .collect();
-
-            let filename = format!("{}_{}.jpg", safe_timestamp, asset_id);
-            let output_path = output_dirs.images.join(&filename);
-
-            // Encode image in a blocking task (CPU-bound JPEG compression)
-            let encoded = tokio::task::spawn_blocking(move || {
-                let mut buffer = Cursor::new(Vec::new());
-                image
-                    .write_to(&mut buffer, ImageFormat::Jpeg)
-                    .map(|_| buffer.into_inner())
-            })
-            .await;
-
-            let jpeg_bytes = match encoded {
-                Ok(Ok(bytes)) => bytes,
-                Ok(Err(e)) => {
-                    return AssetProcessResult::Error {
-                        asset_id,
-                        error: format!("Failed to encode image: {}", e),
-                    };
-                }
-                Err(e) => {
-                    return AssetProcessResult::Error {
-                        asset_id,
-                        error: format!("Image encoding task panicked: {}", e),
-                    };
-                }
-            };
-
-            if let Err(e) = tokio::fs::write(&output_path, jpeg_bytes).await {
-                return AssetProcessResult::Error {
-                    asset_id,
-                    error: format!("Failed to save image: {}", e),
-                };
+            if let Err(error) = save_image(image, &timestamp, &asset_id, output_dirs).await {
+                return AssetProcessResult::Error { asset_id, error };
             }
 
             skip_stats.increment_kept();
@@ -215,4 +189,47 @@ pub async fn process_single_asset(
         PipelineResult::Error { asset_id, error } => AssetProcessResult::Error { asset_id, error },
         PipelineResult::Cancelled { asset_id } => AssetProcessResult::Cancelled { asset_id },
     }
+}
+
+/// Encode a processed image as JPEG and save it as `{timestamp}_{name_id}.jpg`
+/// (timestamp first, so alphabetical order is chronological for the video).
+pub async fn save_image(
+    image: image::DynamicImage,
+    timestamp: &str,
+    name_id: &str,
+    output_dirs: &OutputDirs,
+) -> Result<(), String> {
+    // Sanitize timestamp for filename
+    let safe_timestamp: String = timestamp
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    let filename = format!("{}_{}.jpg", safe_timestamp, name_id);
+    let output_path = output_dirs.images.join(&filename);
+
+    // Encode image in a blocking task (CPU-bound JPEG compression)
+    let encoded = tokio::task::spawn_blocking(move || {
+        let mut buffer = Cursor::new(Vec::new());
+        image
+            .write_to(&mut buffer, ImageFormat::Jpeg)
+            .map(|_| buffer.into_inner())
+    })
+    .await;
+
+    let jpeg_bytes = match encoded {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(e)) => return Err(format!("Failed to encode image: {}", e)),
+        Err(e) => return Err(format!("Image encoding task panicked: {}", e)),
+    };
+
+    tokio::fs::write(&output_path, jpeg_bytes)
+        .await
+        .map_err(|e| format!("Failed to save image: {}", e))
 }
