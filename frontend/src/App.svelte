@@ -1,6 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
   import AlbumSelector from './lib/components/AlbumSelector.svelte';
+  import ConfirmDialog from './lib/components/ConfirmDialog.svelte';
   import ConnectionStatus from './lib/components/ConnectionStatus.svelte';
   import GalleryView from './lib/components/GalleryView.svelte';
   import OutputManager from './lib/components/OutputManager.svelte';
@@ -321,6 +322,8 @@
     </section>
   {/if}
 </main>
+
+<ConfirmDialog />
 
 <style>
   main {
