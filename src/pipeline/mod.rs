@@ -29,6 +29,7 @@ pub use types::*;
 use crate::config::Config;
 use crate::web::AtomicSkipStats;
 use image::{DynamicImage, ImageFormat};
+use std::collections::HashMap;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -47,6 +48,9 @@ pub enum PipelineResult {
         timestamp: String,
         /// Debug images if keep_intermediates was enabled.
         debug_images: Vec<(String, DebugImage)>,
+        /// Values computed by the steps (sharpness, EAR, head pose...), used to rank
+        /// frames extracted from the same video.
+        computed: HashMap<String, ComputedValue>,
     },
     /// Image was skipped.
     Skipped {
@@ -303,6 +307,7 @@ impl Pipeline {
             asset_id,
             timestamp,
             debug_images,
+            computed: ctx.computed,
         }
     }
 }

@@ -56,6 +56,11 @@ RUN mkdir -p models && \
     echo "7d6637b8f34ddb0c1363e09a4628acb34314019ec3566fd66b80c04dda6980f5  /tmp/shape_predictor.dat.bz2" | sha256sum -c && \
     bzip2 -d < /tmp/shape_predictor.dat.bz2 > models/shape_predictor_68_face_landmarks.dat && \
     rm /tmp/shape_predictor.dat.bz2 && \
+    curl -fsSL -o /tmp/face_recognition.dat.bz2 \
+        https://dlib.net/files/dlib_face_recognition_resnet_model_v1.dat.bz2 && \
+    echo "abb1f61041e434465855ce81c2bd546e830d28bcbed8d27ffbe5bb408b11553a  /tmp/face_recognition.dat.bz2" | sha256sum -c && \
+    bzip2 -d < /tmp/face_recognition.dat.bz2 > models/dlib_face_recognition_resnet_model_v1.dat && \
+    rm /tmp/face_recognition.dat.bz2 && \
     apt-get purge -y --autoremove bzip2
 
 # Copy artifacts from build stages

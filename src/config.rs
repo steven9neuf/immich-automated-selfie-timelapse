@@ -519,6 +519,74 @@ impl TimeIntervalConfig {
     }
 }
 
+/// Frame extraction from videos.
+///
+/// Immich only locates faces on a video's preview frame. When enabled, frames are
+/// sampled across the whole video, the person is re-identified on each one with a
+/// dlib face encoding (the preview face is the reference), and the best frames
+/// according to the pipeline filters are kept.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct VideoFramesConfig {
+    /// Whether frames are extracted from videos (otherwise only the preview is used).
+    pub enabled: bool,
+
+    /// Seconds between two sampled frames (lower = finer search, slower).
+    pub interval_secs: f32,
+
+    /// Upper bound of sampled frames per video; the interval widens on long videos.
+    pub max_candidates: u32,
+
+    /// Frames kept per video, best first.
+    pub max_frames_per_video: u32,
+
+    /// Maximum face encoding distance to the reference face (dlib: 0.6 is the usual cut-off).
+    pub match_threshold: f32,
+
+    /// Download the original video instead of Immich's transcoded playback version.
+    pub use_original: bool,
+}
+
+impl Default for VideoFramesConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            interval_secs: 1.0,
+            max_candidates: 30,
+            max_frames_per_video: 1,
+            match_threshold: 0.55,
+            use_original: false,
+        }
+    }
+}
+
+impl VideoFramesConfig {
+    /// Validate the configuration values.
+    pub fn validate(&self) -> Result<()> {
+        if !(0.1..=30.0).contains(&self.interval_secs) {
+            return Err(Error::Config(
+                "Video frames interval_secs must be between 0.1 and 30".to_string(),
+            ));
+        }
+        if !(1..=300).contains(&self.max_candidates) {
+            return Err(Error::Config(
+                "Video frames max_candidates must be between 1 and 300".to_string(),
+            ));
+        }
+        if !(1..=20).contains(&self.max_frames_per_video) {
+            return Err(Error::Config(
+                "Video frames max_frames_per_video must be between 1 and 20".to_string(),
+            ));
+        }
+        if !(0.2..=0.8).contains(&self.match_threshold) {
+            return Err(Error::Config(
+                "Video frames match_threshold must be between 0.2 and 0.8".to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 // ============================================================================
 // Main Processing Configuration
 // ============================================================================
@@ -544,6 +612,10 @@ pub struct ProcessingConfig {
     /// as the image (the original file is never downloaded for videos).
     #[serde(default = "default_true")]
     pub include_videos: bool,
+
+    /// Frame extraction from videos (requires `include_videos`).
+    #[serde(default)]
+    pub video_frames: VideoFramesConfig,
 
     /// Face resolution validation settings.
     #[serde(default)]
@@ -592,6 +664,7 @@ impl Default for ProcessingConfig {
             max_workers: 1,
             use_preview: true,
             include_videos: true,
+            video_frames: VideoFramesConfig::default(),
             face_resolution: FaceResolutionConfig::default(),
             crop: CropConfig::default(),
             blur: BlurConfig::default(),
@@ -624,6 +697,7 @@ impl ProcessingConfig {
         self.alignment.validate()?;
         self.timestamp.validate()?;
         self.time_interval.validate()?;
+        self.video_frames.validate()?;
         Ok(())
     }
 }

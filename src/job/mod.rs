@@ -7,6 +7,7 @@
 //! 4. Compiling processed images into a timelapse video
 
 mod processing;
+mod video_frames;
 
 use crate::config::{TimeIntervalConfig, TimeRange};
 use crate::error::{Error, Result};

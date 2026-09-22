@@ -375,6 +375,55 @@ impl ImmichClient {
         Ok(bytes)
     }
 
+    /// Maximum size of a downloaded video (2 GB).
+    const MAX_VIDEO_SIZE: u64 = 2 * 1024 * 1024 * 1024;
+
+    /// Stream a video to `path`: Immich's transcoded playback version by default
+    /// (small, h264), or the original file.
+    pub async fn download_video_to(
+        &self,
+        asset_id: &str,
+        original: bool,
+        path: &std::path::Path,
+    ) -> Result<()> {
+        use futures_util::StreamExt;
+        use tokio::io::AsyncWriteExt;
+
+        let encoded_id = urlencode(asset_id);
+        let url = if original {
+            format!("{}/assets/{}/original", self.base_url, encoded_id)
+        } else {
+            format!("{}/assets/{}/video/playback", self.base_url, encoded_id)
+        };
+
+        let response = self
+            .client
+            .get(&url)
+            .header("x-api-key", &self.api_key)
+            .timeout(Duration::from_secs(600))
+            .send()
+            .await?;
+        let response = Self::check_response_error(response, "Download video").await?;
+
+        let mut file = tokio::fs::File::create(path).await?;
+        let mut written: u64 = 0;
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            written += chunk.len() as u64;
+            if written > Self::MAX_VIDEO_SIZE {
+                return Err(Error::ImmichApi(format!(
+                    "Video {} is larger than {} bytes",
+                    asset_id,
+                    Self::MAX_VIDEO_SIZE
+                )));
+            }
+            file.write_all(&chunk).await?;
+        }
+        file.flush().await?;
+        Ok(())
+    }
+
     /// Get all detected faces for an asset (one entry per person present in the photo).
     pub async fn get_faces(&self, asset_id: &str) -> Result<Vec<AssetFace>> {
         let encoded_id = urlencode(asset_id);
